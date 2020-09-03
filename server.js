@@ -4,9 +4,10 @@ const unirest = require('unirest');
 const redis = require('redis');
 const bluebird = require("bluebird");
 
+const conf = require('./conf.json');
 const API_SERVER_PORT = 5000;
 const Rapid_API_Host = "apidojo-yahoo-finance-v1.p.rapidapi.com";
-const Rapid_API_Key = '6684a50ca9msh9fdcfe07b379e10p17649bjsn007fdbc1b93f';
+const Rapid_API_Key = conf.rapidAPIKey;
 const baseUrl = 'https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock';
 const headers = {
   "x-rapidapi-host": Rapid_API_Host,
@@ -19,9 +20,9 @@ bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
 const client = redis.createClient({
-  port:'16592',
-  host:'redis-16592.c16.us-east-1-3.ec2.cloud.redislabs.com',
-  password:'X4pXMIQtg81AxG1z3Pv1XfncEpepwj5N',
+  port: '16592',
+  host: 'redis-16592.c16.us-east-1-3.ec2.cloud.redislabs.com',
+  password: conf.redisPassword,
 });
 
 client.on('connect', () => {
@@ -37,11 +38,14 @@ app.use(bodyParser.urlencoded({
 app.use(bodyParser.json());
 
 app.get('/get-analysis', (request, response) => {
+  console.time("Time to fetch data from redis cloud");
+
   let { symbol } = request.query;
   let key = `stock::news::${symbol}`;
 
   client.getAsync(key)
     .then((data) => {
+      console.timeEnd("Time to fetch data from redis cloud")
       if (data === null) {           //data is not cached in redis
         const req = unirest("GET", `${baseUrl}/v2/get-analysis`);
         req.query({
@@ -69,6 +73,7 @@ app.get('/get-analysis', (request, response) => {
 });
 
 app.get('/get-news', (request, response) => {
+  console.time("Time to fetch data from redis cloud");
   let { region, category } = request.query;
   let key = `stock::news::${region}::${category}`;
   let key1 = `${key}::1`;
@@ -76,6 +81,7 @@ app.get('/get-news', (request, response) => {
 
   client.mgetAsync([key1, key2])
     .then((data) => {
+      console.timeEnd("Time to fetch data from redis cloud");
       if (data[0] === null || data[1] === null) {  //data is not cached in redis
         const req = unirest("GET", `${baseUrl}/get-news`);
         req.query({
