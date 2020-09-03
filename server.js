@@ -18,7 +18,11 @@ const app = express();
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
-const client = redis.createClient(6379, 'localhost', { no_ready_check: true });
+const client = redis.createClient({
+  port:'16592',
+  host:'redis-16592.c16.us-east-1-3.ec2.cloud.redislabs.com',
+  password:'X4pXMIQtg81AxG1z3Pv1XfncEpepwj5N',
+});
 
 client.on('connect', () => {
   console.log('Connected to Redis');
